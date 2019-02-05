@@ -7,10 +7,7 @@ import threading
 import uuid
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Iterable
-
-
-# __all__ = ['Journal']
+from typing import Any
 
 
 MAX_BUFFER_SIZE = 1 * 1024  # 1 KB
@@ -87,9 +84,6 @@ class _Journal:
 
 
 class JournalReader(_Journal):
-    # def __init__(self, path: str, name: str, fmt: str):
-    #     super().__init__(path, name, fmt)
-
     def __enter__(self):
         self.lock.acquire()
         self.fd = open(
@@ -366,7 +360,6 @@ class OrderedPersistentJournal():
         for i in i_remove:
             file_list[i].__exit__()
             del file_list[i]
-        # iters = new_iters
         while item_queue.qsize():
             item = item_queue.get()
             yield item.value
