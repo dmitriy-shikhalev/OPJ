@@ -1,3 +1,3 @@
-# from . import bigorderedlist
+from . import OPJ
 
-# __all__ = bigorderedlist.__all__
+__all__ = [OPJ.OrderedPersistentJournal]

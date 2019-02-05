@@ -10,7 +10,7 @@ setuptools.setup(
     author_email="dmitriy.shikhalev@gmail.com",
     description="Ordered Persistent Journal",
     long_description=long_description,
-    long_description_content_type="text/бы",
+    long_description_content_type="text",
     url="https://github.com/dmitriy-shikhalev/OPJ",
     packages=setuptools.find_packages(),
     classifiers=[
