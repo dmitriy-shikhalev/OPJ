@@ -129,7 +129,7 @@ def test_combine(tmpdir):
     assert l == sorted(l)
 
 
-def test_ordered_persistern_journal(tmpdir):
+def test_ordered_persistent_journal(tmpdir):
     ordered_persisternt_jounal = OPJ.OrderedPersistentJournal.new(
         path=tmpdir.strpath,
         fmt='i'
@@ -160,3 +160,37 @@ def test_ordered_persistern_journal(tmpdir):
         if prev is not None:
             assert i >= prev
         prev = i
+
+
+def test_ordered_persistent_journal_2(tmpdir):
+    ordered_persisternt_jounal = OPJ.OrderedPersistentJournal.new(
+        path=tmpdir.strpath,
+        fmt='dI'
+    )
+    l = []
+    for i in range(100_000):
+        item = (random.random(), random.randint(0, 10**9))
+        ordered_persisternt_jounal.append(item)
+        l.append(item)
+
+    assert set(l) == set(sorted(l))
+
+    l.sort()
+
+    l2 = list(ordered_persisternt_jounal)
+
+    assert len(l) == len(l2)
+    assert l == l2
+
+    # gc.collect()
+    time.sleep(2)
+    # assert len([
+    #     fn
+    #     for fn in os.listdir(tmpdir.strpath)
+    #     if fn.startswith('_')
+    # ]) == 0
+    assert len([
+        fn
+        for fn in os.listdir(tmpdir.strpath)
+        if fn not in ('fmt', 'buffer') and not fn.startswith('_')
+    ]) == 1

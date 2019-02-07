@@ -39,15 +39,13 @@ class PriorityItem:
 
 
 class _Journal:
-    files = defaultdict(lambda: 0)
+    journals = dict()
 
     def __init__(self, path: str, name: str, fmt: str):
         self.path = path
         self.name = name
         self.fmt = fmt
         self.lock = threading.Lock()
-
-        self.files[(self.path, self.name)] += 1
 
     @property
     def is_active(self):
@@ -84,6 +82,23 @@ class _Journal:
 
 
 class JournalReader(_Journal):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        with self.lock:
+            self._len = os.path.getsize(self.filename) // self.size
+
+    @property
+    def filename(self):
+        if not os.path.exists(
+            super().filename
+        ):
+            if os.path.exists(
+                    os.path.join(self.path, f'_{self.name}')
+            ):
+                self.name = f'_{self.name}'
+        return super().filename
+
     def __enter__(self):
         self.lock.acquire()
         self.fd = open(
@@ -203,14 +218,13 @@ class Combine(threading.Thread):
         self.journal = journal
         self.path = path
         self.fmt = fmt
-        self.lock = threading.Lock()
 
     def run(self):
         while True:
             priority_item1 = self.journal.file_queue.get()
             priority_item2 = self.journal.file_queue.get()
 
-            outname = uuid.uuid4().hex
+            outname = f'{uuid.uuid4().hex}.opj'
 
             writer = JournalWriter(self.path, outname, self.fmt)
             with priority_item1.item, priority_item2.item, writer:
@@ -258,15 +272,23 @@ class Combine(threading.Thread):
             priority_item1.item.deactivate()
             priority_item2.item.deactivate()
 
-            self.journal._clear_file_list()
+            # priority_item1.item.remove()
+            # priority_item2.item.remove()
+
+            reader = JournalReader(
+                self.path,
+                outname,
+                self.fmt
+            )
+
+            self.journal._file_list.append(reader)
+
+            self.journal._clean_file_list()
 
             self.journal.file_queue.put(
                 PriorityItem(
                     priority=length,
-                    item=JournalReader(
-                        self.path,
-                        writer.name,
-                        self.fmt)
+                    item=reader
                 )
             )
 
@@ -315,7 +337,7 @@ class OrderedPersistentJournal():
         return inst
 
     def append(self, vals):
-        bs = struct.pack(self.fmt, *vals)
+        # bs = struct.pack(self.fmt, *vals)
         self.buffer.append(vals)
         if len(self.buffer) > MAX_BUFFER_SIZE:
             new_file_name = f'{uuid.uuid4().hex}.opj'
@@ -331,16 +353,14 @@ class OrderedPersistentJournal():
                 )
             )
 
-    def _clear_file_list(self):
+    def _clean_file_list(self):
         self._file_list = [file for file in self._file_list if file.is_active]
 
     def __contains__(self, vals):
         raise NotImplementedError
 
     def __iter__(self):
-        file_list = self._file_list.copy()
-        # Enter
-        file_list = [file.__enter__() for file in file_list]
+        file_list = [file.__enter__() for file in self._file_list]
         iters = [iter(file) for file in file_list]
         iters.append(iter(self.buffer))
         item_queue = queue.PriorityQueue()
@@ -358,8 +378,11 @@ class OrderedPersistentJournal():
                     file=file_list[i] if i < len(file_list) else None,
                 ))
         for i in i_remove:
-            file_list[i].__exit__()
-            del file_list[i]
+            try:
+                file_list[i].__exit__()
+                del file_list[i]
+            except IndexError:  # Buffer is ended
+                pass
         while item_queue.qsize():
             item = item_queue.get()
             yield item.value
@@ -367,7 +390,7 @@ class OrderedPersistentJournal():
                 value = next(item.iter)
             except StopIteration:
                 if item.file is not None:
-                    item.file.__exit__()
+                    item.file.__exit__(0, 0, None)
             else:
                 item_queue.put(OrderedItem(
                     value=value,
