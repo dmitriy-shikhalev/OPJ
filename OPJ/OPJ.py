@@ -5,7 +5,6 @@ import queue
 import struct
 import threading
 import uuid
-from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -30,12 +29,6 @@ class OrderedItem:
     value: Any=field()
     iter: Any=field(compare=False)
     file: Any=field(compare=False)
-
-
-@dataclass(order=True)
-class OrderedItem2:
-    value: Any=field()
-    iter: Any=field(compare=False)
 
 
 @dataclass(order=True)
