@@ -117,16 +117,16 @@ def test_combine(tmpdir):
         fn for fn in os.listdir(tmpdir.strpath)
         if not fn.startswith('_')]) == 1
 
-    l = []
+    list_ = []
     with OPJ.JournalReader(
             path,
             os.listdir(tmpdir.strpath)[0],
             fmt
     ) as reader:
         for line in reader:
-            l.append(line[0])
+            list_.append(line[0])
 
-    assert l == sorted(l)
+    assert list_ == sorted(list_)
 
 
 def test_ordered_persistent_journal(tmpdir):
@@ -143,8 +143,7 @@ def test_ordered_persistent_journal(tmpdir):
 
     assert len([
         fn for fn in os.listdir(tmpdir.strpath)
-        if not fn.startswith('_')
-            and fn not in ('fmt', 'buffer')]) == 1
+        if not fn.startswith('_') and fn not in ('fmt', 'buffer')]) == 1
 
     prev = None
     for i in ordered_persisternt_jounal:
@@ -167,26 +166,20 @@ def test_ordered_persistent_journal_2(tmpdir):
         path=tmpdir.strpath,
         fmt='dI'
     )
-    l = []
+    list_ = []
     for i in range(100_000):
         item = (random.random(), random.randint(0, 10**9))
         ordered_persisternt_jounal.append(item)
-        l.append(item)
+        list_.append(item)
 
-    l.sort()
+    list_.sort()
 
-    l2 = list(ordered_persisternt_jounal)
+    list2 = list(ordered_persisternt_jounal)
 
-    assert len(l) == len(l2)
-    assert l == l2
+    assert len(list_) == len(list2)
+    assert list_ == list2
 
-    # gc.collect()
     time.sleep(2)
-    # assert len([
-    #     fn
-    #     for fn in os.listdir(tmpdir.strpath)
-    #     if fn.startswith('_')
-    # ]) == 0
     assert len([
         fn
         for fn in os.listdir(tmpdir.strpath)
@@ -199,12 +192,12 @@ def test_ordered_persistent_journal_contains(tmpdir):
         path=tmpdir.strpath,
         fmt='dI'
     )
-    l = [(1.0, 100), (2.0, 200), (3.0, 300), (4.0, 400), (5.0, 500)]
-    for item in l:
+    list_ = [(1.0, 100), (2.0, 200), (3.0, 300), (4.0, 400), (5.0, 500)]
+    for item in list_:
         ordered_persisternt_jounal.append(item)
 
     assert (1.0, 200) not in ordered_persisternt_jounal
-    assert l[3] in ordered_persisternt_jounal
+    assert list_[3] in ordered_persisternt_jounal
 
 
 def test_ordered_persistent_journal_select(tmpdir):
@@ -212,13 +205,13 @@ def test_ordered_persistent_journal_select(tmpdir):
         path=tmpdir.strpath,
         fmt='dI'
     )
-    l = []
+    list_ = []
     for i in range(10_000):
         item = (random.random(), random.randint(0, 1_000_000))
-        l.append(item)
+        list_.append(item)
         ordered_persisternt_jounal.append(item)
 
-    l.sort()
+    list_.sort()
 
     assert len(
         tuple(
@@ -226,7 +219,7 @@ def test_ordered_persistent_journal_select(tmpdir):
         )
     ) == len(tuple([
         item
-        for item in l
+        for item in list_
         if item <= (0.5, 1000)
     ]))
 
@@ -234,7 +227,7 @@ def test_ordered_persistent_journal_select(tmpdir):
         ordered_persisternt_jounal.select(None, (0.5, 1000))
     ) == tuple([
         item
-        for item in l
+        for item in list_
         if item <= (0.5, 1000)
     ])
 
@@ -242,7 +235,7 @@ def test_ordered_persistent_journal_select(tmpdir):
         ordered_persisternt_jounal.select((0.5, 1000), None)
     ) == tuple([
         item
-        for item in l
+        for item in list_
         if item >= (0.5, 1000)
     ])
 
@@ -250,6 +243,6 @@ def test_ordered_persistent_journal_select(tmpdir):
         ordered_persisternt_jounal.select((0.5, 1000), (0.7, 2000))
     ) == tuple([
         item
-        for item in l
+        for item in list_
         if item >= (0.5, 1000) and item <= (0.7, 2000)
     ])

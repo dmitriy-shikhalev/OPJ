@@ -26,15 +26,15 @@ class TryToOpenUnexistedList(Error):
 
 @dataclass(order=True)
 class OrderedItem:
-    value: Any=field()
-    iter: Any=field(compare=False)
-    file: Any=field(compare=False)
+    value: Any = field()
+    iter: Any = field(compare=False)
+    file: Any = field(compare=False)
 
 
 @dataclass(order=True)
 class PriorityItem:
     priority: int
-    item: Any=field(compare=False)
+    item: Any = field(compare=False)
 
 
 class _Journal:
@@ -120,7 +120,6 @@ class JournalReader(_Journal):
         )
         self._len = os.path.getsize(self.filename) // self.size
         return self
-
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.lock.release()
