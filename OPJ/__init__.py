@@ -1,3 +1,3 @@
-from . import OPJ
+from .OPJ import *
 
-__all__ = [OPJ.OrderedPersistentJournal]
+__all__ = OPJ.__all__
