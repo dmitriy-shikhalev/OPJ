@@ -246,3 +246,6 @@ def test_ordered_persistent_journal_select(tmpdir):
         for item in list_
         if item >= (0.5, 1000) and item <= (0.7, 2000)
     ])
+
+    list_ = list(ordered_persisternt_jounal.select((0.5, 1000), (0.7, 2000)))
+    assert list_ == sorted(list_)
