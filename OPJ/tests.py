@@ -173,8 +173,6 @@ def test_ordered_persistent_journal_2(tmpdir):
         ordered_persisternt_jounal.append(item)
         l.append(item)
 
-    assert set(l) == set(sorted(l))
-
     l.sort()
 
     l2 = list(ordered_persisternt_jounal)
@@ -194,3 +192,64 @@ def test_ordered_persistent_journal_2(tmpdir):
         for fn in os.listdir(tmpdir.strpath)
         if fn not in ('fmt', 'buffer') and not fn.startswith('_')
     ]) == 1
+
+
+def test_ordered_persistent_journal_contains(tmpdir):
+    ordered_persisternt_jounal = OPJ.OrderedPersistentJournal.new(
+        path=tmpdir.strpath,
+        fmt='dI'
+    )
+    l = [(1.0, 100), (2.0, 200), (3.0, 300), (4.0, 400), (5.0, 500)]
+    for item in l:
+        ordered_persisternt_jounal.append(item)
+
+    assert (1.0, 200) not in ordered_persisternt_jounal
+    assert l[3] in ordered_persisternt_jounal
+
+
+def test_ordered_persistent_journal_select(tmpdir):
+    ordered_persisternt_jounal = OPJ.OrderedPersistentJournal.new(
+        path=tmpdir.strpath,
+        fmt='dI'
+    )
+    l = []
+    for i in range(10_000):
+        item = (random.random(), random.randint(0, 1_000_000))
+        l.append(item)
+        ordered_persisternt_jounal.append(item)
+
+    l.sort()
+
+    assert len(
+        tuple(
+            ordered_persisternt_jounal.select(None, (0.5, 1000))
+        )
+    ) == len(tuple([
+        item
+        for item in l
+        if item <= (0.5, 1000)
+    ]))
+
+    assert tuple(
+        ordered_persisternt_jounal.select(None, (0.5, 1000))
+    ) == tuple([
+        item
+        for item in l
+        if item <= (0.5, 1000)
+    ])
+
+    assert tuple(
+        ordered_persisternt_jounal.select((0.5, 1000), None)
+    ) == tuple([
+        item
+        for item in l
+        if item >= (0.5, 1000)
+    ])
+
+    assert tuple(
+        ordered_persisternt_jounal.select((0.5, 1000), (0.7, 2000))
+    ) == tuple([
+        item
+        for item in l
+        if item >= (0.5, 1000) and item <= (0.7, 2000)
+    ])

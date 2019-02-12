@@ -33,6 +33,12 @@ class OrderedItem:
 
 
 @dataclass(order=True)
+class OrderedItem2:
+    value: Any=field()
+    iter: Any=field(compare=False)
+
+
+@dataclass(order=True)
 class PriorityItem:
     priority: int
     item: Any=field(compare=False)
@@ -98,6 +104,20 @@ class JournalReader(_Journal):
             ):
                 self.name = f'_{self.name}'
         return super().filename
+
+    def select(self, from_item, till_item):
+        if from_item is None:
+            from_idx = 0
+        else:
+            from_idx = bisect.bisect_left(self, from_item)
+        if till_item is None:
+            till_idx = len(self)
+        else:
+            till_idx = bisect.bisect_right(self, till_item)
+
+        while from_idx < till_idx:
+            yield self[from_idx]
+            from_idx += 1
 
     def __enter__(self):
         self.lock.acquire()
@@ -202,6 +222,26 @@ class Buffer:
                 writer.append(item)
             self._items = []
         writer.activate()
+
+    def select(self, from_, to):
+        if from_ is None:
+            from_idx = 0
+        else:
+            from_idx = bisect.bisect_left(self, from_)
+        if to is None:
+            to_idx = len(self)
+        else:
+            to_idx = bisect.bisect_right(self, to)
+
+        while from_idx < to_idx:
+            yield self[from_idx]
+            from_idx += 1
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
 
     def __len__(self):
         return len(self._items)
@@ -357,7 +397,36 @@ class OrderedPersistentJournal():
         self._file_list = [file for file in self._file_list if file.is_active]
 
     def __contains__(self, vals):
-        raise NotImplementedError
+        for _ in self.select(vals, vals):
+            return True
+        return False
+
+    def select(self, val_from, val_till):
+        list_ = self._file_list.copy()
+        list_.append(self.buffer)
+        q = queue.PriorityQueue()
+        for reader in list_:
+            iter_ = iter(reader.__enter__().select(val_from, val_till))
+            try:
+                item = next(iter_)
+            except StopIteration:
+                pass
+            else:
+                q.put(
+                    OrderedItem(value=item, iter=iter_, file=reader)
+                )
+
+        while q.qsize():
+            item = q.get()
+            yield item.value
+            try:
+                val = next(item.iter)
+            except StopIteration:
+                item.file.__exit__(None, None, None)
+            else:
+                q.put(
+                    OrderedItem(value=val, iter=item.iter, file=item.file)
+                )
 
     def __iter__(self):
         file_list = [file.__enter__() for file in self._file_list]
